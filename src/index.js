@@ -6,10 +6,12 @@ const {createSchema} = require('./schema');
 const getOpenApiSpec = require('./oas');
 const { printSchema } = require('graphql');
 const logger = require('pino')({useLevelLabels: true});
+const tracer = require('./instrumentation')
 
 main().catch(e => logger.error({error: e.stack}, "failed to start qlkube server"));
 
 async function main() {
+
     const inCluster = process.env.IN_CLUSTER !== 'false';
     logger.info({inCluster}, "cluster mode configured");
     const kubeApiUrl = inCluster ? 'https://kubernetes.default.svc' : 'http://localhost:8001';
@@ -37,5 +39,7 @@ async function main() {
         logger.info({url: `http://localhost:8080${server.graphqlPath}`}, '🚀 Server ready')
     );
 }
+
+
 
 
