@@ -1,6 +1,11 @@
 const {GraphQLString, GraphQLSchema, GraphQLObjectType, GraphQLBoolean} = require('graphql');
 const {mergeSchemas} = require('graphql-tools');
 const {createGraphQlSchema} = require('oasgraph');
+const opentelemetry = require('@opentelemetry/api')
+
+const tracer = opentelemetry.trace.getTracer(
+  'schema-graphql'
+);
 
 exports.createSchema = async (oas, kubeApiUrl, token) => {
     let baseSchema = await oasToGraphQlSchema(oas, kubeApiUrl, token)
@@ -8,6 +13,17 @@ exports.createSchema = async (oas, kubeApiUrl, token) => {
 };
 
 async function oasToGraphQlSchema(oas, kubeApiUrl, token) {
+     let span = opentelemetry.trace.getActiveSpan();
+     if(!span)
+     {
+        span = tracer.startSpan('oasToGraphQlSchema');
+        process.stdout.write("span is null ");
+     }
+     process.stdout.write("value or fulr "+kubeApiUrl);
+     span.setAttribute('baseUrl', kubeApiUrl);
+     span.setAttribute('function', "oasToGraphQlSchema");
+     span.addEvent('Converting schema');
+
     const {schema} = await createGraphQlSchema(oas, {
         baseUrl: kubeApiUrl,
         viewer: false,
@@ -16,12 +32,26 @@ async function oasToGraphQlSchema(oas, kubeApiUrl, token) {
             'Content-Type': 'application/json'
         },
     });
+    if(!schema)
+    {
+          span.setStatus({ code: opentelemetry.SpanStatusCode.ERROR })
+    }
+    span.end();
     return schema
 }
 
 // adds an 'all' type to the schema
 function decorateSchema(baseSchema) {
     //TODO: extract query type names to env vars
+    let span = opentelemetry.trace.getActiveSpan();
+     if(!span)
+     {
+             span = tracer.startSpan('decorateSchema');
+             process.stdout.write("span is null ");
+    }
+
+    span.setAttribute('function',"decorateSchema");
+    span.addEvent('decorateSchema schema');
     const allType = new GraphQLObjectType({
         name: 'all',
         description: 'All kube resources.',
@@ -59,6 +89,7 @@ function decorateSchema(baseSchema) {
     });
 
     const schemas = [baseSchema, schema];
+     span.end();
     return mergeSchemas({schemas});
 }
 
