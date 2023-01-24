@@ -10,13 +10,17 @@ const { gcpDetector } = require('@opentelemetry/resource-detector-gcp')
 const { envDetector, hostDetector, osDetector, processDetector,Resource } = require('@opentelemetry/resources')
 const { SemanticResourceAttributes } = require('@opentelemetry/semantic-conventions');
 const otel = require('@opentelemetry/api')
-
+const { GraphQLInstrumentation } = require('@opentelemetry/instrumentation-graphql');
 
 const sdk = new opentelemetry.NodeSDK({
   traceExporter: new OTLPTraceExporter(),
   instrumentations: [ getNodeAutoInstrumentations(),
                     new HttpInstrumentation(),
-                    new ExpressInstrumentation()],
+                    new ExpressInstrumentation(),
+                     new GraphQLInstrumentation({
+                           mergeItems: true,
+                           ignoreTrivialResolveSpans: true,
+                        }),],
   metricReader: new PeriodicExportingMetricReader({
       exporter: new OTLPMetricExporter()
     }),
