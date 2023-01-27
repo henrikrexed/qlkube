@@ -1,11 +1,68 @@
-> ⚠️
->
->  PLEASE NOTE: this project is no longer actively maintained. It is recommended to use the fork at https://github.com/tmobile/qlkube where active development has been transferred to. 
->
-> ⚠️
+# Otel in Practice demo with Graphql 
 
-# qlkube
+This demo is using :
+- a modified version of the project Qlkube
+- the openTelemetry demo 
+- the OpenTelemetry Operator 
+- Dynatrace
 
+
+
+## Deployment Steps in GCP
+
+You will first need a Kubernetes cluster with 2 Nodes.
+You can either deploy on Minikube or K3s or follow the instructions to create GKE cluster:
+### 1.Create a Google Cloud Platform Project
+```shell
+PROJECT_ID="<your-project-id>"
+gcloud services enable container.googleapis.com --project ${PROJECT_ID}
+gcloud services enable monitoring.googleapis.com \
+    cloudtrace.googleapis.com \
+    clouddebugger.googleapis.com \
+    cloudprofiler.googleapis.com \
+    --project ${PROJECT_ID}
+```
+### 2.Create a GKE cluster
+```shell
+ZONE=europe-west3-a
+NAME=otelinpractice-qlkube
+gcloud container clusters create "${NAME}" \
+ --zone ${ZONE} --machine-type=e2-standard-2 --num-nodes=3
+```
+
+
+## Getting started
+### Dynatrace Tenant
+#### 1. Dynatrace Tenant - start a trial
+If you don't have any Dyntrace tenant , then i suggest to create a trial using the following link : [Dynatrace Trial](https://bit.ly/3KxWDvY)
+Once you have your Tenant save the Dynatrace (including https) tenant URL in the variable `DT_TENANT_URL` (for example : https://dedededfrf.live.dynatrace.com)
+```
+DT_TENANT_URL=<YOUR TENANT URL>
+```
+
+
+#### 2. Create the Dynatrace API Tokens
+Create a Dynatrace token with the following scope ( left menu Acces Token):
+* ingest metrics
+* ingest OpenTelemetry traces
+<p align="center"><img src="/image/data_ingest.png" width="40%" alt="data token" /></p>
+Save the value of the token . We will use it later to store in a k8S secret
+
+```
+DATA_INGEST_TOKEN=<YOUR TOKEN VALUE>
+```
+### 3.Clone the Github Repository
+```shell
+git clone https://github.com/henrikrexed/qlkube
+cd qlkube
+```
+### 4.Deploy most of the components
+The application will deploy the otel demo v1.2.1
+```shell
+chmod 777 deployment.sh
+./deployment.sh  --clustername "${NAME}" --dturl "${DT_TENANT_URL}" --dttoken "${DATA_INGEST_TOKEN}"
+```
+### Qlkube
 qlkube is a graphql api for kubernetes, allowing you to interact with all the features of the Kubernetes api using graphql.
 
 qlkube's graphql schema is dynamically built from the openapi/swagger api specification exposed by the Kubernetes cluster it 
@@ -308,53 +365,5 @@ Output:
 
 </details> 
 
-## Running
 
-### Quickstart
 
-qlkube is designed to be run inside the kubernetes cluster. 
-The included [quickstart.yaml](deployments/quickstart.yaml) manifest should get you started: 
-
-```
-kubectl apply -f deployments/quickstart.yaml 
-kubectl port-forward svc/qlkube 8080:80
-```
-
-Navigate to http://localhost:8080/ in your browser - this will launch the GraphQL Playground which you can use to interact
-with the kubernetes api.
-
-### Skaffold
- 
-The included [skaffold.yaml](skaffold.yaml) can be used to build and deploy from source 
-(note that in production you may want to restrict the permissive RBAC settings in `deployments/deployment.yaml`).
-N.B. you need [skaffold](https://github.com/GoogleContainerTools/skaffold) installed!
-
-```
-skaffold dev
-kubectl port-forward svc/qlkube 8080:80
-```
-
-Navigate to http://localhost:8080/ in your browser - this will launch the GraphQL Playground which you can use to interact
-with the kubernetes api.
-
-### Out of cluster (dev mode)
-
-For playing around locally you can run qlkube from source outside of the cluster. To do this you must first proxy the Kubernetes
-api server to http://localhost:8001:
-
-```
-kubectl proxy
-```
-
-You can then run qlkube locally, which will connect to the proxied Kubernetes api:
-
-```
-npm run local
-```
-
-Navigate to http://localhost:8080/ in your browser - this will launch the GraphQL Playground which you can use to interact
-with the kubernetes api.
-
-## Schema
-
-The generated graphql schema is served at /schema

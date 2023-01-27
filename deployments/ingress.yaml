@@ -5,7 +5,7 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-    - host :  "qlkube.34.159.9.29.nip.io"
+    - host :  "qlkube.IP_TO_REPLACE.nip.io"
       http:
         paths:
           - pathType: ImplementationSpecific
